@@ -345,9 +345,6 @@ hook.Add("PlayerSpawn", "APS_RestoreSettings", function(ply)
         if not model or model == "" then return end
 
         APS.ChangeCharacter(ply, model)
-        APS.ApplyColors(ply)
-        APS.ApplyFlexes(ply)
-        APS.ApplyBodygroups(ply)
     end)
 end)
 
