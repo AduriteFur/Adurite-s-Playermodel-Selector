@@ -87,111 +87,43 @@ local function ApplyColors(ply)
     local playerColor = ply:GetInfo("cl_playercolor")
     local weaponColor = ply:GetInfo("cl_weaponcolor")
 
+    APSDebug("Restoring colors for " .. ply:Nick())
+    APSDebug("Player color received: " .. tostring(playerColor))
+    APSDebug("Weapon color received: " .. tostring(weaponColor))
+
     if playerColor and playerColor ~= "" then
         ply:SetPlayerColor(Vector(playerColor))
+        APSDebug("Applied player color: " .. playerColor)
+    else
+        APSDebug("WARNING: Player color is empty!")
     end
 
     if weaponColor and weaponColor ~= "" then
         ply:SetWeaponColor(Vector(weaponColor))
+        APSDebug("Applied weapon color: " .. weaponColor)
+    else
+        APSDebug("WARNING: Weapon color is empty!")
     end
 end
 
 local function SetupPlayerHands(ply, mdlname)
-    timer.Simple(0.1, function()
-        if not IsValid(ply) then
-            return
-        end
+    timer.Simple(0, function()
+        if not IsValid(ply) then return end
 
         if isfunction(ply.SetupHands) then
             ply:SetupHands()
         end
-    end)
 
-    timer.Simple(0.2, function()
-        if not IsValid(ply) then
-            return
-        end
+        if not mdlname or mdlname == "" then return end
 
-        local handModelName = ply:GetInfo("cl_playerhands")
+        timer.Simple(0.1, function()
+            if not IsValid(ply) then return end
 
-        if handModelName and handModelName ~= "" then
-            mdlname = handModelName
-        end
+            local hands = ply:GetHands()
+            if not IsValid(hands) then return end
 
-        local mdlhands = player_manager.TranslatePlayerHands(mdlname)
-        local hands = ply:GetHands()
-
-        if not IsValid(hands) then
-            APSDebug("ERROR - Player hands entity is invalid.")
-            return
-        end
-
-        if not mdlhands or not istable(mdlhands) or not mdlhands.model then
-            APSDebug("ERROR - TranslatePlayerHands returned invalid data.")
-            return
-        end
-
-        if hands:GetModel() == mdlhands.model then
-            APSDebug(
-                "SetupHands successful. Hands set to: "
-                .. tostring(mdlhands.model)
-            )
-
-            return
-        end
-
-        APSDebug("SetupHands failed. Trying workaround...")
-
-        hands:SetModel(mdlhands.model)
-        hands:SetSkin(mdlhands.skin or 0)
-
-        if mdlhands.body then
-            hands:SetBodyGroups(mdlhands.body)
-        end
-
-        local skin = ply:GetInfoNum("cl_playerhandsskin", 0)
-
-        hands:SetSkin(skin)
-
-        APSDebug(
-            "Set hands model skin to no.: "
-            .. tostring(skin)
-        )
-
-        local groups = ply:GetInfo("cl_playerhandsbodygroups") or ""
-        local values = string.Explode(" ", groups)
-
-        for i = 0, hands:GetNumBodyGroups() - 1 do
-            local value = tonumber(values[i + 1]) or 0
-
-            hands:SetBodygroup(i, value)
-
-            APSDebug(
-                "Set hands bodygroup no. "
-                .. tostring(i)
-                .. " to: "
-                .. tostring(value)
-            )
-        end
-
-        if CVarDebug and CVarDebug:GetBool() then
-            timer.Simple(0.2, function()
-                if not IsValid(ply) or not IsValid(hands) then
-                    return
-                end
-
-                if hands:GetModel() == mdlhands.model then
-                    print(
-                        "[APS] Workaround successful. Hands set to: "
-                        .. tostring(mdlhands.model)
-                    )
-                else
-                    print(
-                        "[APS] Workaround failed. Unable to setup viewmodel hands. Please check for incompatible addons."
-                    )
-                end
-            end)
-        end
+            hands:SetModel(mdlname)
+        end)
     end)
 end
 
@@ -204,6 +136,8 @@ if SERVER then
     util.AddNetworkString("aps_playermodel_blacklist")
   --util.AddNetworkString("aps_playermodel_voxlist")
     util.AddNetworkString("aps_playermodel_update")
+    util.AddNetworkString("aps_playermodel_colors")
+
 
     local SetMDL = FindMetaTable("Entity").SetModel
     local addon_legs = false
@@ -286,7 +220,7 @@ if SERVER then
 
         ApplyFlexes(ply)
         ApplyColors(ply)
-        SetupPlayerHands(ply, mdlpath)
+        SetupPlayerHands(ply)
 
         if addon_legs then
             hook.Run("SetModel", ply, mdlpath)
@@ -351,6 +285,37 @@ if SERVER then
         APSDebug("Received model path: " .. mdlpath)
 
         APS.ChangeCharacter(ply, mdlpath)
+    end)
+    
+    net.Receive("aps_playermodel_colors", function(_, ply)
+        if not IsValid(ply) or not ply:IsPlayer() then
+            return
+        end
+
+        if not Allowed(ply) then
+            return
+        end
+
+        local playerColor = net.ReadVector()
+        local weaponColor = net.ReadVector()
+
+        playerColor = Vector(
+            math.Clamp(playerColor.x, 0, 1),
+            math.Clamp(playerColor.y, 0, 1),
+            math.Clamp(playerColor.z, 0, 1)
+        )
+
+        weaponColor = Vector(
+            math.Clamp(weaponColor.x, 0, 1),
+            math.Clamp(weaponColor.y, 0, 1),
+            math.Clamp(weaponColor.z, 0, 1)
+        )
+
+        ply:SetPlayerColor(playerColor)
+        ply:SetWeaponColor(weaponColor)
+
+        APSDebug("Updated player and weapon colors for " .. ply:Nick())
+        
     end)
 
 --    if file.Exists("autorun/sh_legs.lua", "LUA") then

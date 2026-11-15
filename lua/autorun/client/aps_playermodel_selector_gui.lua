@@ -62,7 +62,6 @@ local function CreateGUI()
         UI.Frame:MakePopup()
 
         return
-
     end
 
     UI.Favorites = {}
@@ -604,8 +603,18 @@ local function CreateGUI()
     -- UI.Flex:Whatever()
 
     -- Colors
+    UI.Colors.apply.DoClick = function()
+        local playerColor = UI.Colors.plrcol:GetVector()
+        local weaponColor = UI.Colors.weaponcol:GetVector()
 
-    -- UI.Colors:Whatever()
+        RunConsoleCommand("cl_playercolor", tostring(playerColor.x), tostring(playerColor.y), tostring(playerColor.z))
+        RunConsoleCommand("cl_weaponcolor", tostring(weaponColor.x), tostring(weaponColor.y), tostring(weaponColor.z))
+
+        net.Start("aps_playermodel_colors")
+            net.WriteVector(playerColor)
+            net.WriteVector(weaponColor)
+        net.SendToServer()
+    end
 
     -- Misc
 
@@ -746,6 +755,10 @@ end
     PopulatePlayerModels()
     PopulateArmsModels()
 
+    -- fix colors --
+    print("[APS Color Debug] GUI initialization")
+print("[APS Color Debug] cl_playercolor:", GetConVar("cl_playercolor"):GetString())
+print("[APS Color Debug] cl_weaponcolor:", GetConVar("cl_weaponcolor"):GetString())
     --  --
 
     UI.Frame:MakePopup()
