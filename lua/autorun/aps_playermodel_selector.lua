@@ -42,11 +42,11 @@ local function ParseCol(value)
     b = tonumber(b)
 
     if not r or not g or not b then
-        print("[APS colour Debug] FAILED TO PARSE: " .. tostring(value))
+        APSDebug("Failed to parse color: " .. tostring(value))
         return nil
     end
 
-    print(string.format("[APS colour Debug] Parsed: %.4f %.4f %.4f", r, g, b))
+    APSDebug(string.format("Parsed color: %.4f %.4f %.4f", r, g, b))
 
     return Vector(r, g, b)
 end
@@ -108,19 +108,19 @@ end
 local function ApplyColors(ply)
     if not IsValid(ply) then return end
 
-    print("[APS] Recovering colors for " .. ply:Nick())
+    APSDebug("Recovering colors for " .. ply:Nick())
 
     local playerColor = ParseCol(ply:GetInfo("cl_playercolor"))
     local weaponColor = ParseCol(ply:GetInfo("cl_weaponcolor"))
 
     if playerColor then
         ply:SetPlayerColor(playerColor)
-        print("[APS] Player colour restored: " .. tostring(ply:GetPlayerColor()))
+        APSDebug("Player color restored: " .. tostring(ply:GetPlayerColor()))
     end
 
     if weaponColor then
         ply:SetWeaponColor(weaponColor)
-        print("[APS] Weapon colour restored: " .. tostring(ply:GetWeaponColor()))
+        APSDebug("Weapon color restored: " .. tostring(ply:GetWeaponColor()))
     end
 end
 
@@ -219,7 +219,7 @@ if SERVER then
             return false
         end
 
-        print("[APS] Setting model: " .. mdlpath)
+        APSDebug("Setting model: " .. mdlpath)
 
         SetMDL(ply, mdlpath)
 
