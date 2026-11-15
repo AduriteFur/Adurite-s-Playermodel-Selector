@@ -29,6 +29,28 @@ local function APSDebug(text)
     end
 end
 
+-- helpers
+local function ParseCol(value)
+    if not value or value == "" then return nil end
+
+    value = string.gsub(value, '"', "")
+
+    local r, g, b = string.match(value, "([%-%.%d]+)%s+([%-%.%d]+)%s+([%-%.%d]+)")
+
+    r = tonumber(r)
+    g = tonumber(g)
+    b = tonumber(b)
+
+    if not r or not g or not b then
+        print("[APS colour Debug] FAILED TO PARSE: " .. tostring(value))
+        return nil
+    end
+
+    print(string.format("[APS colour Debug] Parsed: %.4f %.4f %.4f", r, g, b))
+
+    return Vector(r, g, b)
+end
+
 -- plr functs
 local function ApplyBodygroups(ply, groups)
     groups = groups or ""
@@ -84,25 +106,21 @@ local function ApplyFlexes(ply)
 end
 
 local function ApplyColors(ply)
-    local playerColor = ply:GetInfo("cl_playercolor")
-    local weaponColor = ply:GetInfo("cl_weaponcolor")
+    if not IsValid(ply) then return end
 
-    APSDebug("Restoring colors for " .. ply:Nick())
-    APSDebug("Player color received: " .. tostring(playerColor))
-    APSDebug("Weapon color received: " .. tostring(weaponColor))
+    print("[APS] Recovering colors for " .. ply:Nick())
 
-    if playerColor and playerColor ~= "" then
-        ply:SetPlayerColor(Vector(playerColor))
-        APSDebug("Applied player color: " .. playerColor)
-    else
-        APSDebug("WARNING: Player color is empty!")
+    local playerColor = ParseCol(ply:GetInfo("cl_playercolor"))
+    local weaponColor = ParseCol(ply:GetInfo("cl_weaponcolor"))
+
+    if playerColor then
+        ply:SetPlayerColor(playerColor)
+        print("[APS] Player colour restored: " .. tostring(ply:GetPlayerColor()))
     end
 
-    if weaponColor and weaponColor ~= "" then
-        ply:SetWeaponColor(Vector(weaponColor))
-        APSDebug("Applied weapon color: " .. weaponColor)
-    else
-        APSDebug("WARNING: Weapon color is empty!")
+    if weaponColor then
+        ply:SetWeaponColor(weaponColor)
+        print("[APS] Weapon colour restored: " .. tostring(ply:GetWeaponColor()))
     end
 end
 
@@ -286,37 +304,22 @@ if SERVER then
 
         APS.ChangeCharacter(ply, mdlpath)
     end)
-    
-    net.Receive("aps_playermodel_colors", function(_, ply)
-        if not IsValid(ply) or not ply:IsPlayer() then
-            return
-        end
 
-        if not Allowed(ply) then
-            return
-        end
+net.Receive("aps_playermodel_colors", function(_, ply)
+    if not IsValid(ply) or not ply:IsPlayer() then return end
+    if not Allowed(ply) then return end
 
-        local playerColor = net.ReadVector()
-        local weaponColor = net.ReadVector()
+    local playerColor = net.ReadVector()
+    local weaponColor = net.ReadVector()
 
-        playerColor = Vector(
-            math.Clamp(playerColor.x, 0, 1),
-            math.Clamp(playerColor.y, 0, 1),
-            math.Clamp(playerColor.z, 0, 1)
-        )
+    ply:SetPlayerColor(playerColor)
+    ply:SetWeaponColor(weaponColor)
 
-        weaponColor = Vector(
-            math.Clamp(weaponColor.x, 0, 1),
-            math.Clamp(weaponColor.y, 0, 1),
-            math.Clamp(weaponColor.z, 0, 1)
-        )
+    RunConsoleCommand("cl_playercolor", tostring(playerColor.x), tostring(playerColor.y), tostring(playerColor.z))
+    RunConsoleCommand("cl_weaponcolor", tostring(weaponColor.x), tostring(weaponColor.y), tostring(weaponColor.z))
 
-        ply:SetPlayerColor(playerColor)
-        ply:SetWeaponColor(weaponColor)
-
-        APSDebug("Updated player and weapon colors for " .. ply:Nick())
-        
-    end)
+    APSDebug("Updated colors for " .. ply:Nick())
+end)
 
 --    if file.Exists("autorun/sh_legs.lua", "LUA") then
 --        addon_legs = true
@@ -333,19 +336,18 @@ if SERVER then
 		CreateConVar( "cl_playerhandsskin", "0", { FCVAR_ARCHIVE, FCVAR_USERINFO, FCVAR_DONTRECORD }, "The skin on the hands to use, if the model has any" )
 	end )
 
-hook.Add("PlayerSpawn", "APS_RestorePlayerModel", function(ply)
+
+hook.Add("PlayerSpawn", "APS_RestoreSettings", function(ply)
     timer.Simple(0, function()
-        if not IsValid(ply) then
-            return
-        end
+        if not IsValid(ply) then return end
 
         local model = ply:GetInfo("cl_playermodel")
-
-        if not model or model == "" then
-            return
-        end
+        if not model or model == "" then return end
 
         APS.ChangeCharacter(ply, model)
+        APS.ApplyColors(ply)
+        APS.ApplyFlexes(ply)
+        APS.ApplyBodygroups(ply)
     end)
 end)
 

@@ -6,7 +6,7 @@ local FILES = {
 local VPVars = {
     ["curAnim"] = 0,
     ["lastAnim"] = 0,
-    ["bindpose"] = false 
+    ["bindpose"] = false
 }
 
 -- CVars
@@ -23,7 +23,7 @@ if CLIENT then
 end
 
 -- vars
-UI["enabled"] = false 
+UI["enabled"] = false
 
 -- funcs
 local function chatWelcome()
@@ -603,6 +603,13 @@ local function CreateGUI()
     -- UI.Flex:Whatever()
 
     -- Colors
+local pr, pg, pb = GetConVar("cl_playercolor"):GetString():gsub('"', ''):match("(%S+)%s+(%S+)%s+(%S+)")
+UI.Colors.plrcol:SetColor(Color(tonumber(pr) * 255, tonumber(pg) * 255, tonumber(pb) * 255))
+
+local wr, wg, wb = GetConVar("cl_weaponcolor"):GetString():gsub('"', ''):match("(%S+)%s+(%S+)%s+(%S+)")
+UI.Colors.weaponcol:SetColor(Color(tonumber(wr) * 255, tonumber(wg) * 255, tonumber(wb) * 255))
+
+
     UI.Colors.apply.DoClick = function()
         local playerColor = UI.Colors.plrcol:GetVector()
         local weaponColor = UI.Colors.weaponcol:GetVector()
@@ -756,6 +763,7 @@ end
     PopulateArmsModels()
 
     -- fix colors --
+
     print("[APS Color Debug] GUI initialization")
 print("[APS Color Debug] cl_playercolor:", GetConVar("cl_playercolor"):GetString())
 print("[APS Color Debug] cl_weaponcolor:", GetConVar("cl_weaponcolor"):GetString())
